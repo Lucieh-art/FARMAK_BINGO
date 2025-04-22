@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Farmak Bingo</title>
+  <title>Farmak Bingo – Automatické</title>
   <style>
     body {
       font-family: sans-serif;
@@ -38,55 +38,24 @@
       background-color: #3b82f6;
       color: white;
     }
-    .controls {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-    button {
-      background-color: #2563eb;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 12px;
-      cursor: pointer;
-    }
     .bingo {
       font-size: 1.5rem;
       color: green;
       font-weight: bold;
+      margin-top: 20px;
+    }
+    .info {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #555;
     }
   </style>
 </head>
 <body>
   <h1>Farmak Bingo</h1>
-  <label for="playerSelect">Vyber číslo hráče (1–16):</label>
-  <select id="playerSelect">
-    <option value="">-- Vyber číslo hráče --</option>
-<option value="1">Hráč 1</option>
-<option value="2">Hráč 2</option>
-<option value="3">Hráč 3</option>
-<option value="4">Hráč 4</option>
-<option value="5">Hráč 5</option>
-<option value="6">Hráč 6</option>
-<option value="7">Hráč 7</option>
-<option value="8">Hráč 8</option>
-<option value="9">Hráč 9</option>
-<option value="10">Hráč 10</option>
-<option value="11">Hráč 11</option>
-<option value="12">Hráč 12</option>
-<option value="13">Hráč 13</option>
-<option value="14">Hráč 14</option>
-<option value="15">Hráč 15</option>
-<option value="16">Hráč 16</option>
-  </select>
-  <div class="controls">
-    <button onclick="generateBoard()">Zobrazit tabulku</button>
-    <div class="bingo" id="bingoMsg"></div>
-  </div>
-  <div class="grid" id="bingoGrid" style="display:none;"></div>
+  <div class="info" id="playerInfo"></div>
+  <div class="grid" id="bingoGrid"></div>
+  <div class="bingo" id="bingoMsg"></div>
 
   <script>
     const hlasky = [
@@ -99,6 +68,7 @@
       "Nasdílel jsem dnešní agendu","VT vyřeší","dává to takto smysl","J. Chaloupkovi pískají ptáci",
       "Zdravím všechny","Monika říká svůj názor","Jo, super, děkuju","Děkuji předem","Žádný pracovní úraz","Jen tak dále"
     ];
+
     let marked = [];
 
     function seededShuffle(array, seed) {
@@ -125,14 +95,28 @@
         hash = ((hash << 5) - hash) + str.charCodeAt(i);
         hash |= 0;
       }
-      return Math.abs(hash) % 100000;
+      return Math.abs(hash);
     }
 
-    function generateBoard() {
-      const playerSelect = document.getElementById('playerSelect');
-      const player = parseInt(playerSelect.value);
-      if (!player) return;
+    function assignPlayerNumber() {
+      const today = new Date().toISOString().slice(0, 10);
+      const assignedToday = JSON.parse(localStorage.getItem('bingoAssignments-' + today) || '[]');
+      let myNumber = localStorage.getItem('myBingoNumber-' + today);
+      if (myNumber) return parseInt(myNumber);
 
+      for (let i = 1; i <= 16; i++) {
+        if (!assignedToday.includes(i)) {
+          assignedToday.push(i);
+          localStorage.setItem('bingoAssignments-' + today, JSON.stringify(assignedToday));
+          localStorage.setItem('myBingoNumber-' + today, i);
+          return i;
+        }
+      }
+
+      return null; // all taken
+    }
+
+    function generateBoard(player) {
       const date = new Date().toISOString().slice(0, 10);
       const seed = hashCode(player + '-' + date);
       const selected = seededShuffle(hlasky, seed).slice(0, 24);
@@ -143,7 +127,6 @@
       const grid = document.getElementById('bingoGrid');
       grid.innerHTML = "";
       document.getElementById('bingoMsg').textContent = "";
-      grid.style.display = "grid";
 
       selected.forEach((item, index) => {
         const div = document.createElement('div');
@@ -167,6 +150,14 @@
         [0,6,12,18,24],[4,8,12,16,20]
       ];
       return winPatterns.some(pattern => pattern.every(i => marked[i]));
+    }
+
+    const myNumber = assignPlayerNumber();
+    if (myNumber) {
+      document.getElementById('playerInfo').textContent = "Tvůj hráčský kód pro dnešek: Hráč " + myNumber;
+      generateBoard(myNumber);
+    } else {
+      document.getElementById('playerInfo').textContent = "❌ Už bylo rozděleno všech 16 karet pro dnešní den.";
     }
   </script>
 </body>
