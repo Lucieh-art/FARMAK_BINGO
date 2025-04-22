@@ -1,0 +1,173 @@
+
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Farmak Bingo</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: white;
+      color: #1e3a8a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .cell {
+      border: 1px solid #93c5fd;
+      background-color: #dbeafe;
+      padding: 12px;
+      text-align: center;
+      border-radius: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .cell.marked {
+      background-color: #3b82f6;
+      color: white;
+    }
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    button {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .bingo {
+      font-size: 1.5rem;
+      color: green;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Farmak Bingo</h1>
+  <label for="playerSelect">Vyber číslo hráče (1–16):</label>
+  <select id="playerSelect">
+    <option value="">-- Vyber číslo hráče --</option>
+<option value="1">Hráč 1</option>
+<option value="2">Hráč 2</option>
+<option value="3">Hráč 3</option>
+<option value="4">Hráč 4</option>
+<option value="5">Hráč 5</option>
+<option value="6">Hráč 6</option>
+<option value="7">Hráč 7</option>
+<option value="8">Hráč 8</option>
+<option value="9">Hráč 9</option>
+<option value="10">Hráč 10</option>
+<option value="11">Hráč 11</option>
+<option value="12">Hráč 12</option>
+<option value="13">Hráč 13</option>
+<option value="14">Hráč 14</option>
+<option value="15">Hráč 15</option>
+<option value="16">Hráč 16</option>
+  </select>
+  <div class="controls">
+    <button onclick="generateBoard()">Zobrazit tabulku</button>
+    <div class="bingo" id="bingoMsg"></div>
+  </div>
+  <div class="grid" id="bingoGrid" style="display:none;"></div>
+
+  <script>
+    const hlasky = [
+      "Ahojky","Chápu to správně","Jo, já jsem si nezapl mikrofon","Aho (Monika)","Hezký den",
+      "Alfuzosin je nadýchaný","Hrudky","Svolám řešitelskou schůzku","Co na uni","reklamace brimonidin",
+      "plýtvání","pokrok s ABBF","A přeji hezký nadcházející víkend.","Uhm, oká","Obligátní dotaz",
+      "řešitelská schůzka","manažerská pětiminutovka","účast z ostatních oddělení","Vážení!","Přátelé!",
+      "Máte ještě někdo něco, co nebyl zmíněno v dnešní agendě?","Nebudeme zdržovat ostatní","Leo mlčí, když se někdo hádá.",
+      "Zdeňku, jak to vidíš?","Rozumíme si?","vysdílíme si to jen mezi sebou","Na Nové hale nic nového",
+      "Nasdílel jsem dnešní agendu","VT vyřeší","dává to takto smysl","J. Chaloupkovi pískají ptáci",
+      "Zdravím všechny","Monika říká svůj názor","Jo, super, děkuju","Děkuji předem","Žádný pracovní úraz","Jen tak dále"
+    ];
+    let marked = [];
+
+    function seededShuffle(array, seed) {
+      let result = array.slice();
+      let m = result.length, t, i;
+      while (m) {
+        i = Math.floor(random(seed) * m--);
+        t = result[m];
+        result[m] = result[i];
+        result[i] = t;
+        seed++;
+      }
+      return result;
+    }
+
+    function random(seed) {
+      const x = Math.sin(seed++) * 10000;
+      return x - Math.floor(x);
+    }
+
+    function hashCode(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+      }
+      return Math.abs(hash) % 100000;
+    }
+
+    function generateBoard() {
+      const playerSelect = document.getElementById('playerSelect');
+      const player = parseInt(playerSelect.value);
+      if (!player) return;
+
+      const date = new Date().toISOString().slice(0, 10);
+      const seed = hashCode(player + '-' + date);
+      const selected = seededShuffle(hlasky, seed).slice(0, 24);
+      selected.splice(12, 0, "BINGO");
+      marked = Array(25).fill(false);
+      marked[12] = true;
+
+      const grid = document.getElementById('bingoGrid');
+      grid.innerHTML = "";
+      document.getElementById('bingoMsg').textContent = "";
+      grid.style.display = "grid";
+
+      selected.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'cell' + (index === 12 ? ' marked' : '');
+        div.textContent = item;
+        div.onclick = () => {
+          if (index !== 12) {
+            marked[index] = !marked[index];
+            div.classList.toggle('marked');
+            if (checkBingo()) document.getElementById('bingoMsg').textContent = "🎉 BINGO! Vyhráváš!";
+          }
+        };
+        grid.appendChild(div);
+      });
+    }
+
+    function checkBingo() {
+      const winPatterns = [
+        [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
+        [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
+        [0,6,12,18,24],[4,8,12,16,20]
+      ];
+      return winPatterns.some(pattern => pattern.every(i => marked[i]));
+    }
+  </script>
+</body>
+</html>
